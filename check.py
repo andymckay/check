@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 from __future__ import with_statement
 
+from scapa import Scapa
+
 import os
 import re
 import sys
@@ -9,8 +11,6 @@ import functools
 import contextlib
 import subprocess
 from cStringIO import StringIO
-
-from path import path
 
 # Not using re.VERBOSE because we need to match a '#' for git.
 VCS = {'svn': "^(?:A|M)\s+" # Find Added or Modified files.
@@ -37,6 +37,8 @@ def captured_output():
         sys.stdout = stdout
 
 
+scapa = Scapa('check')
+scapa.reset()
 checkers = []
 def checker(include='*', exclude=''):
     """Decorator to register `func` in `checkers` and normalize output."""
@@ -84,14 +86,23 @@ def call(seq):
     return subprocess.Popen(seq, stdout=subprocess.PIPE).communicate()[0]
 
 
+def store(output):
+    for line in output.split('\n'):
+        line = line.strip()
+        if not line:
+            continue
+        fn, num, rest = line.split(':', 2)
+        carrionette.add(num, fn, rest)
+
+
 @checker('*.py')
 def pyflakes(files):
-    print call(['pyflakes'] + files)
+    store(call(['pyflakes'] + files))
 
 
 @checker('*.py')
 def pep8(files):
-    print call(['pep8', '--repeat'] + files)
+    store(call(['pep8', '--repeat'] + files))
 
 
 @checker(exclude='*.py')
@@ -111,8 +122,8 @@ def _main():
         files = interesting_files(vcs)
     else:
         files = []
-        for p in map(path, sys.argv[1:]):
-            if p.isfile():
+        for p in sys.argv[1:]:
+            if os.path.exists(p):
                 files.append(p)
             else:
                 for f in p.walkfiles():
@@ -122,6 +133,8 @@ def _main():
     files = filter(os.path.isfile, set(files))
     for checker in checkers:
         checker(files)
+
+    print carrionette
 
 if __name__ == '__main__':
     _main()
