@@ -92,7 +92,7 @@ def store(output):
         if not line:
             continue
         fn, num, rest = line.split(':', 2)
-        carrionette.add(num, fn, rest)
+        scapa.add(num, fn, rest)
 
 
 @checker('*.py')
@@ -142,7 +142,7 @@ def _main():
     for checker in checkers:
         checker(files)
 
-    print carrionette
+    print scapa
 
 if __name__ == '__main__':
     _main()
