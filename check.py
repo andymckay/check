@@ -86,12 +86,20 @@ def call(seq):
     return subprocess.Popen(seq, stdout=subprocess.PIPE).communicate()[0]
 
 
-def store(output):
+def store(output, fmt='normal'):
     for line in output.split('\n'):
         line = line.strip()
         if not line:
             continue
-        fn, num, rest = line.split(':', 2)
+        if fmt == 'jshint':
+            try:
+                fn, rest = line.split(':', 1)
+                num, rest = rest[6:].split(',', 1)
+            except ValueError:
+                continue
+        else:
+            fn, num, rest = line.split(':', 2)
+
         scapa.add(num, fn, rest)
 
 
@@ -118,7 +126,7 @@ def trailing_whitespace(files):
 @checker('*.js')
 def jshint(files):
     try:
-        print call(['jshint'] + files)
+        store(call(['jshint'] + files), fmt='jshint')
     except OSError:
         print 'jshint not installed for js checking'
 
@@ -142,7 +150,9 @@ def _main():
     for checker in checkers:
         checker(files)
 
-    print scapa
+    out = str(scapa)
+    if out:
+        print scapa
 
 if __name__ == '__main__':
     _main()
